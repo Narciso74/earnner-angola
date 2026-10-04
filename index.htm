@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz Angola</title>
+<style>
+:root{--bg:#14110f;--card:#211c19;--text:#f6efe6;--muted:#a89f94;--red:#c8102e;--gold:#f2b705;--ok:#2e9e5b}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Georgia,serif;display:flex;justify-content:center;padding:20px}
+main{width:100%;max-width:480px}
+h1{font-size:2rem;margin:8px 0 4px}
+p{line-height:1.5;color:var(--muted)}
+.card{background:var(--card);border-left:6px solid var(--red);border-radius:6px;padding:20px;margin-top:16px}
+.bar{height:6px;background:#3a332e;border-radius:3px;margin-top:16px}
+.bar div{height:100%;width:0;background:var(--gold);border-radius:3px;transition:width .3s}
+.info{display:flex;justify-content:space-between;color:var(--muted);font-size:.9rem;margin-top:12px}
+h2{font-size:1.25rem;line-height:1.35;margin:0 0 16px}
+button{font:inherit;cursor:pointer}
+.opt{display:block;width:100%;text-align:left;background:#2c2622;color:var(--text);border:2px solid #3a332e;border-radius:6px;padding:14px;margin-top:10px;font-size:1rem}
+.opt:focus-visible,.go:focus-visible{outline:3px solid var(--gold)}
+.opt.ok{border-color:var(--ok);background:#1f3a2a}
+.opt.bad{border-color:var(--red);background:#40161d}
+.go{background:var(--gold);color:#14110f;border:0;border-radius:6px;padding:14px 20px;font-size:1.05rem;font-weight:bold;margin-top:16px;width:100%}
+.big{font-size:3.5rem;color:var(--gold);margin:8px 0}
+.ad{margin-top:20px;min-height:60px;border:1px dashed #3a332e;border-radius:6px;color:var(--muted);font-size:.8rem;display:flex;align-items:center;justify-content:center}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+  <h1>Quiz Angola</h1>
+
+  <section id="start" class="card">
+    <p>10 perguntas sorteadas a cada jogo, sobre Angola, cultura, comida, desporto e mundo. Escolha um nível e tente bater o seu recorde.</p>
+    <p id="best"></p>
+    <button class="go lv" data-l="f">Fácil</button>
+    <button class="go lv" data-l="m">Médio</button>
+    <button class="go lv" data-l="d">Difícil</button>
+  </section>
+
+  <section id="game" class="card hide">
+    <div class="bar"><div id="prog"></div></div>
+    <div class="info"><span id="num"></span><span id="pts"></span></div>
+    <h2 id="q" style="margin-top:16px"></h2>
+    <div id="opts"></div>
+    <button class="go hide" id="next">Próxima</button>
+  </section>
+
+  <section id="end" class="card hide">
+    <p>Você acertou</p>
+    <div class="big" id="final"></div>
+    <p id="msg"></p>
+    <button class="go" id="again">Jogar de novo</button>
+    <button class="go" id="menu" style="background:#3a332e;color:var(--text)">Mudar nível</button>
+  </section>
+
+  <!-- Espaço para anúncio (cole aqui o código do Google AdSense quando tiver conta aprovada) -->
+  <div class="ad">Espaço para anúncio</div>
+</main>
+
+<script>
+const PER = 10;
+// Formato: [pergunta, resposta certa, errada1, errada2, errada3]
+const BANK = [
+["Qual é a capital de Angola?","Luanda","Huambo","Benguela","Lobito"],
+["Em que ano Angola se tornou independente?","1975","1965","1980","1991"],
+["Em que dia Angola celebra a independência?","11 de Novembro","4 de Fevereiro","4 de Abril","1 de Maio"],
+["Qual é a língua oficial de Angola?","Português","Francês","Inglês","Espanhol"],
+["Qual é a moeda de Angola?","Kwanza","Metical","Rand","Dólar"],
+["Quais são as cores da bandeira de Angola?","Vermelho, preto e amarelo","Verde, branco e vermelho","Azul, branco e vermelho","Verde, amarelo e preto"],
+["Que figura aparece na bandeira junto da engrenagem e do facão?","Uma estrela","Um sol","Uma palmeira","Uma águia"],
+["Qual é o nome do hino nacional de Angola?","Angola Avante","Pátria Amada","Terra Querida","Independência"],
+["Quem foi o primeiro presidente de Angola?","Agostinho Neto","José Eduardo dos Santos","Jonas Savimbi","João Lourenço"],
+["Quem sucedeu Agostinho Neto na presidência?","José Eduardo dos Santos","João Lourenço","Holden Roberto","Jonas Savimbi"],
+["Que país colonizou Angola?","Portugal","Espanha","França","Reino Unido"],
+["Em que ano terminou a guerra civil angolana?","2002","1991","1995","2008"],
+["Qual rainha resistiu aos portugueses no século XVII?","Njinga Mbande","Isabel II","Cleópatra","Vitória"],
+["Em que ano foi fundada a cidade de Luanda?","1576","1482","1648","1710"],
+["Qual cidade angolana foi o centro do antigo Reino do Kongo?","M'banza Kongo","Lubango","Malanje","Saurimo"],
+["Qual é o ponto mais alto de Angola?","Morro do Moco","Tundavala","Kilimanjaro","Serra da Leba"],
+["As Quedas de Calandula ficam em que província?","Malanje","Cabinda","Namibe","Huíla"],
+["Qual província angolana é separada do resto do país por território da RD Congo?","Cabinda","Cunene","Zaire","Bengo"],
+["A Fenda da Tundavala fica perto de que cidade?","Lubango","Huambo","Menongue","Saurimo"],
+["Qual rio corre todo em Angola e dá nome à moeda?","Cuanza","Congo","Cunene","Zambeze"],
+["O rio Cunene forma parte da fronteira com qual país?","Namíbia","Zâmbia","Botswana","Quénia"],
+["Qual destes países faz fronteira com Angola?","Zâmbia","Quénia","Tanzânia","Malawi"],
+["Que oceano banha a costa de Angola?","Atlântico","Índico","Pacífico","Ártico"],
+["Qual porto é o ponto de partida do Caminho de Ferro de Benguela?","Lobito","Cabinda","Namibe","Soyo"],
+["O Parque Nacional da Quiçama fica perto de qual cidade?","Luanda","Cabinda","Huambo","Saurimo"],
+["As Lundas são famosas por qual riqueza?","Diamantes","Café","Petróleo","Ouro"],
+["Qual é o principal produto de exportação de Angola?","Petróleo","Café","Banana","Algodão"],
+["Qual animal é símbolo nacional de Angola?","Palanca-negra-gigante","Leão","Elefante","Girafa"],
+["Qual planta rara e muito longeva cresce no deserto do Namibe?","Welwítchia","Imbondeiro","Palmeira","Cacto"],
+["Qual árvore gigante, de tronco largo, é ícone da paisagem angolana?","Imbondeiro","Pinheiro","Carvalho","Salgueiro"],
+["Qual dança e estilo musical nasceu em Angola e conquistou o mundo?","Kizomba","Salsa","Tango","Flamenco"],
+["O semba é apontado como uma das raízes de qual ritmo brasileiro?","Samba","Forró","Frevo","Axé"],
+["Em que cidade surgiu o kuduro?","Luanda","Benguela","Huambo","Lubango"],
+["Qual cantor angolano é autor de 'Mona Ki Ngi Xica'?","Bonga","Paulo Flores","Waldemar Bastos","Matias Damásio"],
+["Quem escreveu o romance 'Mayombe'?","Pepetela","Ondjaki","José Eduardo Agualusa","Mia Couto"],
+["Quem escreveu 'O Vendedor de Passados'?","José Eduardo Agualusa","Pepetela","Ondjaki","Luandino Vieira"],
+["Agostinho Neto, além de político, era conhecido como...","Médico e poeta","Engenheiro e pintor","Advogado e juiz","Militar e piloto"],
+["Qual prato, feito de mandioca ou milho, acompanha muitas refeições angolanas?","Funge","Cachupa","Francesinha","Paella"],
+["Qual prato nacional leva galinha, azeite de palma e quiabo?","Muamba de galinha","Feijoada","Cachupa","Bacalhau"],
+["Em Angola, o que é a 'ginguba'?","Amendoim","Mandioca","Feijão","Milho"],
+["Em Angola, o que é o 'jindungo'?","Pimenta","Gengibre","Alho","Cebola"],
+["Qual doce angolano leva coco e gemas de ovo?","Cocada amarela","Pastel de nata","Brigadeiro","Pudim"],
+["Qual destas é uma cerveja angolana?","Cuca","Super Bock","Sagres","Heineken"],
+["Em Angola, a palavra 'kamba' significa...","Amigo","Irmão","Comida","Casa"],
+["Na gíria angolana, o que quer dizer 'bué'?","Muito","Pouco","Rápido","Longe"],
+["Qual destas é uma língua nacional de Angola?","Umbundu","Suaíli","Zulu","Haúça"],
+["Como é conhecida a seleção angolana de futebol?","Palancas Negras","Leões Indomáveis","Super Águias","Elefantes"],
+["Qual é o campeonato nacional de futebol de Angola?","Girabola","Brasileirão","Premier League","La Liga"],
+["Em que ano Angola jogou pela primeira vez uma Copa do Mundo?","2006","1998","2010","2014"],
+["Qual país africano mais vezes venceu o AfroBasket masculino?","Angola","Egito","Nigéria","Senegal"],
+["Qual é a capital de Moçambique?","Maputo","Beira","Nampula","Matola"],
+["Qual é a capital da Namíbia?","Windhoek","Swakopmund","Walvis Bay","Lüderitz"],
+["Qual é o rio mais comprido da África?","Nilo","Congo","Níger","Zambeze"],
+["Qual é o maior deserto quente do mundo?","Saara","Kalahari","Namibe","Gobi"],
+["Quantos países têm o português como língua oficial?","9","5","7","12"],
+["Qual é a capital de Cabo Verde?","Praia","Mindelo","Assomada","Tarrafal"],
+["Qual planeta é conhecido como Planeta Vermelho?","Marte","Vénus","Júpiter","Saturno"],
+["Quem venceu a Copa do Mundo de 2022?","Argentina","França","Croácia","Brasil"],
+["Qual é o maior animal terrestre?","Elefante-africano","Girafa","Hipopótamo","Rinoceronte"]
+];
+const EASY = [0, 1, 2, 3, 4, 5, 8, 10, 22, 26, 29, 30, 37, 42, 44, 50, 52, 53, 56, 57, 58], HARD = [13, 14, 15, 23, 28, 31, 33, 34, 35, 41, 48, 49, 54];
+const LEVELS = {f:"Fácil", m:"Médio", d:"Difícil"};
+const QUESTIONS = BANK.map((b,n) => ({q:b[0], o:b.slice(1), a:0, d: EASY.includes(n) ? "f" : HARD.includes(n) ? "d" : "m"}));
+
+const $ = id => document.getElementById(id);
+let list, i, score, locked, level;
+
+function best(l){ try{ return +localStorage.getItem("quizBest_"+l)||0 }catch(e){ return 0 } }
+function saveBest(l,v){ try{ localStorage.setItem("quizBest_"+l, v) }catch(e){} }
+function showBest(){ const t = Object.keys(LEVELS).filter(l=>best(l)).map(l=>LEVELS[l]+" "+best(l)+"/"+PER); $("best").textContent = t.length ? "Recordes: "+t.join(", ") : ""; }
+
+function shuffle(a){ for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; }
+
+function start(l){
+  if(l) level = l;
+  list = shuffle(QUESTIONS.filter(q=>q.d===level)).slice(0, PER);
+  i = 0; score = 0;
+  $("start").classList.add("hide");
+  $("end").classList.add("hide");
+  $("game").classList.remove("hide");
+  show();
+}
+
+function show(){
+  locked = false;
+  const item = list[i];
+  $("num").textContent = "Pergunta "+(i+1)+" de "+list.length;
+  $("pts").textContent = "Acertos: "+score;
+  $("prog").style.width = (i/list.length*100)+"%";
+  $("q").textContent = item.q;
+  $("next").classList.add("hide");
+  const box = $("opts");
+  box.innerHTML = "";
+  item.o.map((t,idx)=>({t,idx})).sort(()=>Math.random()-.5).forEach(({t,idx})=>{
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.textContent = t;
+    b.onclick = () => pick(b, idx);
+    box.appendChild(b);
+  });
+}
+
+function pick(btn, idx){
+  if(locked) return;
+  locked = true;
+  const right = list[i].a;
+  const rightText = list[i].o[right];
+  if(idx === right){ score++; btn.classList.add("ok"); }
+  else{
+    btn.classList.add("bad");
+    [...$("opts").children].forEach(b=>{ if(b.textContent===rightText) b.classList.add("ok"); });
+  }
+  $("pts").textContent = "Acertos: "+score;
+  $("next").textContent = i === list.length-1 ? "Ver resultado" : "Próxima";
+  $("next").classList.remove("hide");
+}
+
+function next(){
+  i++;
+  if(i < list.length) show(); else finish();
+}
+
+function finish(){
+  $("game").classList.add("hide");
+  $("end").classList.remove("hide");
+  $("final").textContent = score+" / "+list.length;
+  $("msg").dataset.n = LEVELS[level];
+  let m = score >= 9 ? "Excelente! Você conhece muito bem Angola." : score >= 6 ? "Muito bom! Quase lá." : "Continue tentando, você vai melhorar.";
+  if(score > best(level)){ saveBest(level, score); m += " Novo recorde!"; }
+  $("msg").textContent = m;
+}
+
+document.querySelectorAll(".lv").forEach(b => b.onclick = () => start(b.dataset.l));
+$("menu").onclick = () => { $("end").classList.add("hide"); $("start").classList.remove("hide"); showBest(); };
+$("next").onclick = next;
+$("again").onclick = () => start();
+showBest();
+</script>
+</body>
+  </html>
